@@ -1,0 +1,190 @@
+﻿<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title></title>
+    <script src="Socket.js"></script>
+    <script src="jquery-1.12.1.min.js"></script>
+    <script src="PeerConnection.js"></script>
+    <script>
+     
+    </script>
+</head>
+<body >
+    <div id="Recieve" style="width:100%;position:fixed;height:800px;background-color:rgba(255, 255, 255, 0.34);display:none;z-index:1000000000000000000000000000000000000">
+        <div class="rounded" id="PopBox" style="width:330px;height:180px;position:relative;margin:auto;background-color:rgb(255, 255, 255);border:1px solid black;margin-top:5%">
+            <div style="height:35px;width:100%;position:relative;float:left"><i style="float:right;margin:5px" class="fa fa-times"></i></div>
+            <div style="height:60px;width:100%;position:relative;float:left">
+                <img src="WebCall.png" style="height:45px;width:45px;position:relative;float:left;margin-left:15px" />
+                <span id="TextCall" style="height: 45px; width:auto; position: relative; float: left;padding-top:15px;padding-left:5px">
+
+                </span>
+            </div>
+            <div id="BtBox" style="height:45px;width:100%;position:relative;float:left;padding-left:6%">
+
+            </div>
+        </div>
+    </div>
+    <div id="videos-container" style="height:auto;width:100%;position:relative;float:left;top:0;background-color:black">
+
+    </div>
+    <input id="Button1" onclick="FF()" type="button" value="button" />
+    <script>
+        var videosContainer = document.getElementById('videos-container') || document.body;
+        
+        var channel = location.href.replace(/\/|:|#|%|\.|\[|\]/g, '');
+
+        var pub = 'pub-f986077a-73bd-4c28-8e50-2e44076a84e0';
+        var sub = 'sub-b8f4c07a-352e-11e2-bb9d-c7df1d04ae4a';
+        WebSocket = PUBNUB.ws;
+
+        var websocket = new WebSocket('wss://pubsub.pubnub.com/' + pub + '/' + sub + '/' + channel);
+
+        websocket.onerror = function () {
+            //location.reload();
+        };
+
+        websocket.onclose = function () {
+            //location.reload();
+        };
+        websocket.push = websocket.send;
+        websocket.send = function (data) {
+            websocket.push(JSON.stringify(data));
+        };
+        var peer = new PeerConnection(websocket);
+        
+        //===============================
+        peer.onStreamAdded = function (e) {
+
+            var video = e.mediaElement;
+            videosContainer.insertBefore(video, videosContainer.firstChild);
+            video.controls = false;
+            video.play();
+            if (document.getElementsByTagName('video')[0] != null && document.getElementsByTagName('video')[1] == null) {
+                //alert("For Caller"+window.innerHeight)
+                document.getElementsByTagName('video')[0].style.width = "20%"
+                document.getElementsByTagName('video')[0].style.height = "150px"
+                document.getElementsByTagName('video')[0].style.border = "2px solid white"
+                document.getElementsByTagName('video')[0].style.position = "absolute"
+                document.getElementsByTagName('video')[0].style.styleFloat = "Right"
+                document.getElementsByTagName('video')[0].style.marginTop = "1%"
+                document.getElementsByTagName('video')[0].style.zIndex = "1000"
+                document.getElementsByTagName('video')[0].style.marginLeft = "-99%"
+            }
+            else if (document.getElementsByTagName('video')[0] != null && document.getElementsByTagName('video')[1] != null) {
+                document.getElementsByTagName('video')[1].style.width = "20%"
+                document.getElementsByTagName('video')[1].style.height = "150px"
+                document.getElementsByTagName('video')[1].style.position = "absolute"
+                document.getElementsByTagName('video')[1].style.styleFloat = "Right"
+                document.getElementsByTagName('video')[1].style.marginTop = "1%"
+                document.getElementsByTagName('video')[1].style.zIndex = "1000"
+                document.getElementsByTagName('video')[1].style.marginLeft = "-99%"
+                var videoi = document.getElementsByTagName('video')[0];
+
+                videoi.setAttribute("width", "100%")
+                //alert("For Rec" + window.innerHeight)
+                videoi.setAttribute("height", window.innerHeight)
+                videoi.style.marginTop = "0%";
+                videoi.style.marginLeft = "0";
+                videoi.style.backgroundColor = "#000000"
+                videoi.setAttribute("position", "relative")
+                videoi.setAttribute("float", "left")
+                videoi.style.zIndex = "1000000"
+            }
+            else {
+
+            }
+        };
+        peer.onStreamEnded = function (e) {
+            var video = e.mediaElement;
+            if (video) {
+                video.style.opacity = 0;
+                rotateVideo(video);
+                setTimeout(function () {
+                    video.parentNode.removeChild(video);
+                    scaleVideos();
+                }, 1000);
+            }
+        };
+        peer.onUserFound = function (userid) {
+            if (document.getElementById(userid)) return;
+
+            document.getElementById("TextCall")
+            document.getElementById("TextCall").innerHTML = userid + ' Calling You..';
+            var btn = document.getElementById("BtBox")
+            var button = document.createElement('div');
+            button.innerHTML = '<img src="video-call.png" style="height: 100%; width: 50px; position: relative; float: left" /> <span style="padding-top: 5px;position:relative;float:left">Join</span>';
+            button.id = userid;
+            button.style.position = 'relative';
+            button.style.styleFloat = 'left';
+            button.style.height = '100%';
+            button.style.width = '37%';
+            button.style.backgroundColor = '#32bea6';
+            button.style.color = 'white';
+            button.className = " rounded btn btn-primary"
+
+            button.onclick = function () {
+                button = this;
+                getUserMedia(function (stream) {
+                    peer.addStream(stream);
+                    peer.sendParticipationRequest(button.id);
+                });
+                document.getElementById("Recieve").style.display = "none"
+            };
+            var buttonII = document.createElement('div');
+            buttonII.innerHTML = '<img src="denied.png"  style="height: 90%; width: 35px; position: relative; float: left;margin-top:2px" /> <span style="padding-top: 5px;position:relative;float:left;padding-left:5px">Avoid</span>';
+            buttonII.id = userid;
+            buttonII.style.position = 'relative';
+            buttonII.style.styleFloat = 'left';
+            buttonII.style.height = '100%';
+            buttonII.style.width = '38%';
+            buttonII.style.marginLeft = '18%';
+            buttonII.style.color = 'white';
+            buttonII.className = " rounded btn btn-primary"
+            btn.appendChild(button)
+            btn.appendChild(buttonII)
+            document.getElementById("Recieve").style.display = "block"
+        };
+        function FF() {
+            this.disabled = true;
+            getUserMedia(function (stream) {
+                peer.addStream(stream);
+                peer.startBroadcasting();
+            });
+        };
+
+        function getUserMedia(callback) {
+            var hints = {
+                audio: true,
+                video: {
+                    optional: [],
+                    mandatory: {}
+                }
+            };
+            navigator.getUserMedia(hints, function (stream) {
+                var video = document.createElement('video');
+                video.src = URL.createObjectURL(stream);
+                video.controls = false;
+                video.muted = true;
+
+                peer.onStreamAdded({
+                    mediaElement: video,
+                    userid: 'self',
+                    stream: stream
+                });
+
+                callback(stream);
+            }, function () { });
+
+        }
+       
+        //===============================
+       
+
+      
+
+      
+      
+    </script>
+</body>
+
+</html>
